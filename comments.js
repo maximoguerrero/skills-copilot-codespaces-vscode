@@ -1,18 +1,55 @@
-// Create webserver with express
-const express = require('express');
-const router = express.Router();
+// Create web server
+// Run: node comments.js
+// ========================================
 
-// Import controller
-const commentsCtrl = require('../controllers/comments');
+// Import modules
+var express = require('express');
+var bodyParser = require('body-parser');
+var fs = require('fs');
+
+// Create web server
+var app = express();
+
+// Configure web server
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+app.use(express.static(__dirname + '/public'));
 
 // Create routes
-router.post('/', commentsCtrl.createComment);
-router.get('/', commentsCtrl.getAllComments);
-router.get('/:id', commentsCtrl.getOneComment);
-router.put('/:id', commentsCtrl.modifyComment);
-router.delete('/:id', commentsCtrl.deleteComment);
+app.get('/get-comments', function(req, res){
+    console.log('GET request received at /get-comments');
+    res.setHeader('Content-Type', 'application/json');
+    res.sendFile(__dirname + '/comments.json');
+});
 
-// Export
-module.exports = router;
+app.post('/post-comment', function(req, res){
+    console.log('POST request received at /post-comment');
+    res.setHeader('Content-Type', 'application/json');
+    var comment = {
+        'name': req.body.name,
+        'message': req.body.message,
+        'timestamp': new Date()
+    };
+    console.log(comment);
+    fs.readFile(__dirname + '/comments.json', function(err, data){
+        if (err){
+            console.log(err);
+            return;
+        }
+        var comments = JSON.parse(data);
+        comments.push(comment);
+        fs.writeFile(__dirname + '/comments.json', JSON.stringify(comments), function(err){
+            if (err){
+                console.log(err);
+                return;
+            }
+            console.log('Comment added');
+            res.send(JSON.stringify(comments));
+        });
+    });
+});
 
-//end file
+// Start web server
+var server = app.listen(8080, function(){
+    console.log('Web server listening at http://%s:%s', server.address().address, server.address().port);
+});
